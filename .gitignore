@@ -1,5 +1,5 @@
 /data
 /venv
-/training_logs
 /vysledky
 /.idea
+/test-results
