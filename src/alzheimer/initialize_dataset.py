@@ -1,68 +1,31 @@
-import os
 import argparse
+import re
 import shutil
-import scipy.io
-import pandas as pd
+import sys, os, inspect
+import cv2
+currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+parentdir = os.path.dirname(currentdir)
+sys.path.insert(0, parentdir)
+from helpers import fixpos_to_densemap, find_files_in_dir
 
-### Had to copy this from src/helpers.py because import was not working
-# Return files inside the provided directory and subdirectories
-def find_files_in_dir(dirpath, filename=None, filenameContains=None):
-    files = []
-    for root, dirs, localfiles in os.walk(dirpath):
-        for f in localfiles:
-            # If filename is provided, filter only files matching the name
-            if filename:
-                if os.path.basename(f) == filename:
-                    files.append(os.path.join(root, f))
-            # If file name contains is provided
-            elif filenameContains:
-                if filenameContains in os.path.basename(f):
-                    files.append(os.path.join(root, f))
-            else:
-                files.append(os.path.join(root, f))
-    # Skip hidden files and folders
-    files = [f for f in files if not os.path.basename(f)[0] == '.']
-    return files
+def rename_images(images_dir):
+    all_images = find_files_in_dir(images_dir)
 
+    for image in all_images:
+        image_index = os.path.splitext(os.path.basename(image))[0]
+        parent_dir = os.path.dirname(image)
+        new_image_name = 'Part' + re.findall(r'\d+', os.path.basename(parent_dir))[0] + '-' + image_index + '.bmp'
+        new_image_path = os.path.join(images_dir, new_image_name)
+        print(new_image_path)
+        shutil.move(image, new_image_path)
 
-def create_sm_directories(fixations_dir):
-    subdirs = [f.path for f in os.scandir(fixations_dir) if f.is_dir()]
-    for subdir in subdirs:
-        filenames = os.listdir(subdir)
-        target = os.path.join(subdir, 'SM')
-        os.mkdir(target)
-
-        for filename in filenames:
-            shutil.move(os.path.join(subdir, filename), target)
-
-
-def create_personalized_directory(fixations_dir):
-    personalized_directory_path = os.path.join(fixations_dir, 'Personalized_maps')
-
-    if not os.path.exists(personalized_directory_path):
-        os.mkdir(personalized_directory_path)
-
-    subdirs = [f.path for f in os.scandir(fixations_dir) if f.is_dir()]
-    for subdir in subdirs:
-        if 'Sub_' in subdir:
-            shutil.move(subdir, personalized_directory_path)
-
-
-# Convert .mat fixation files to .csv
-def convert_mat_to_json(fixations_dir):
-    mat_files = find_files_in_dir(os.path.join(fixations_dir, 'Raw'))
-
-    for index, mat_file in enumerate(mat_files):
-        if not os.path.splitext(mat_file)[1] == '.mat':
-            continue
-
-        content = scipy.io.loadmat(mat_file)
-        mat = {k: v for k, v in content.items() if k[0] != '_'}
-        print(mat)
-        data = pd.DataFrame({k: pd.Series(v[0]) for k, v in mat.items()})
-        data.to_json(mat_file + '.json')
-        print(index + 1, "/", len(mat_files))
-
+# Convert images from .bmp to .jpg
+def convert_images(images_dir):
+    all_images = find_files_in_dir(images_dir, filenameContains='.bmp')
+    for image_path in all_images:
+        image = cv2.imread(image_path)
+        cv2.imwrite(os.path.join(images_dir, os.path.splitext(os.path.basename(image_path))[0] + '.jpg'), image)
+        os.remove(image_path)
 
 def main():
     """The main function reads the command line arguments, invokes the
@@ -73,13 +36,14 @@ def main():
     parser = argparse.ArgumentParser(
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument("-fix", "--fixations-path", metavar="FP",
-                        help="path for the fixations directory")
+    parser.add_argument("-img", "--images-path", metavar="FP",
+                        help="path for the images directory")
 
     args = parser.parse_args()
-    #create_sm_directories(args.fixations_path)
-    #create_personalized_directory(args.fixations_path)
-    convert_mat_to_json(args.fixations_path)
+    rename_images(args.images_path)
+    print("Dataset successfully initialized !")
+    convert_images(args.images_path)
+    print("Images successfully converted from .bmp to .jpg !")
 
 
 if __name__ == "__main__":
