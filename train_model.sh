@@ -6,37 +6,32 @@
 MODEL="nothing"
 MODEL_NAME="nothing"
 OBSERVER="nothing"
-
-function parse_args(){
-  while getopts "h?tno:" opt; do
-    case "$opt" in
-      h|\?)
-        echo "Available arguments:"
-        echo "  -t <model_type>       generalized, personalized"
-        echo "  -n <model_name>       name of the model which will be serialized"
-        echo "  -o <observer_name>    name of observer"
-        exit 0
-        ;;
-      t)  MODEL=$OPTARG
-        ;;
-      n)  MODEL_NAME=$OPTARG
-        ;;
-      o)  OBSERVER=$OPTARG
-        ;;
-    esac
-  done
-
-  # if user does not set model name set it same as model type
-  if [ "$MODEL_NAME" = "nothing" ]
-  then
-    MODEL_NAME=$MODEL
-  fi
-}
-
 # PSD Dataset
 IMAGE_PATH='data/PSD/images'
 
-parse_args
+while getopts "t:n:o:" opt; do
+  case "$opt" in
+    t)  MODEL=$OPTARG
+      ;;
+    n)  MODEL_NAME=$OPTARG
+      ;;
+    o)  OBSERVER=$OPTARG
+      ;;
+    ?)
+      echo "Available arguments:"
+      echo "  -t <model_type>       generalized, personalized"
+      echo "  -n <model_name>       name of the model which will be serialized"
+      echo "  -o <observer_name>    name of observer"
+      exit 0
+      ;;
+  esac
+done
+
+# if user does not set model name set it same as model type
+if [ "$MODEL_NAME" = "nothing" ]
+then
+  MODEL_NAME=$MODEL
+fi
 
 if [ "$MODEL" = "generalized" ]
 then
