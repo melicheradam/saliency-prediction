@@ -54,7 +54,7 @@ mkdir -p test-results/"$MODEL_NAME"/"$OBSERVER"/"$MODEL"-saliency
 
 ## Predict saliency maps for the test image
 sudo docker run -u root -v $(pwd):/labs -it --gpus all python3-tensorflow-dp python encoder-decoder-model/main.py test -d personalized -p encoder-decoder-model/data/personalized/test
-cp -rf encoder-decoder-model/results/images test-results/"$MODEL_NAME"/"$OBSERVER"/"$MODEL"-saliency
+cp -rf encoder-decoder-model/results/images/. test-results/"$MODEL_NAME"/"$OBSERVER"/"$MODEL"-saliency
 
 ## Evaluate all saliency metrics
 echo "Evaluating performance..."
@@ -62,5 +62,5 @@ sudo docker run -u root -v $(pwd):/labs -it python2-dp python src/evaluate_resul
 
 ## Produce discrepancy maps for the observer's predictions
 echo "Producing discrepancy maps..."
-sudo docker run -u root -v $(pwd):/labs -it python3-tensorflow-dp python src/differentiate_maps.py -gt $GT_PATH/"$OBSERVER" -sal test-results/"$MODEL_NAME"/"$OBSERVER"/saliency -out test-results/"$MODEL_NAME"/"$OBSERVER"/"$MODEL"-discrepancy -orig encoder-decoder-model/data/personalized/test
+sudo docker run -u root -v $(pwd):/labs -it python3-tensorflow-dp python src/differentiate_maps.py -gt $GT_PATH/"$OBSERVER" -sal test-results/"$MODEL_NAME"/"$OBSERVER"/"$MODEL"-saliency -out test-results/"$MODEL_NAME"/"$OBSERVER"/"$MODEL"-discrepancy -orig encoder-decoder-model/data/personalized/test
 
