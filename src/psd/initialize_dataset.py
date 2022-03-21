@@ -50,7 +50,9 @@ def create_personalized_directory(fixations_dir):
 
 # Convert .mat fixation files to .csv
 def convert_mat_to_json(fixations_dir):
-    mat_files = find_files_in_dir(os.path.join(fixations_dir, 'Raw'))
+
+    # mat_files = find_files_in_dir(os.path.join(fixations_dir, 'Raw'))
+    mat_files = find_files_in_dir(os.path.join(fixations_dir))
 
     for index, mat_file in enumerate(mat_files):
         if not os.path.splitext(mat_file)[1] == '.mat':

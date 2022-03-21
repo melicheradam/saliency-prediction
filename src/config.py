@@ -11,4 +11,4 @@ EVALUATION_METRICS = {
 
 #GENERALIZED_MAPS_PATH = 'eyetrackingdata/alzheimer-dataset/fixation_map_30_release/Generated_Generalized_maps'
 # GENERALIZED_MAPS_PATH = 'eyetrackingdata/alzheimer-dataset-2/Generated_Generalized_maps'
-GENERALIZED_MAPS_PATH = 'data/PSD/generated_generalized'
+# GENERALIZED_MAPS_PATH = 'data/PSD/generated_generalized'

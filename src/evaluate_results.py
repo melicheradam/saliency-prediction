@@ -110,7 +110,7 @@ def evaluate_model(gt_directory, gt_raw_directory, sm_directory, pred_gen_direct
     # Find paths of all ground-truth and predicted maps and sort them
     gt_dir_path = os.path.join(gt_directory)
     gt_raw_dir_path = os.path.join(gt_raw_directory)
-    gt_generalized_dir_path = os.path.join(config.GENERALIZED_MAPS_PATH)
+    gt_generalized_dir_path = os.path.join(pred_gen_directory)
     sm_dir_path = os.path.join(sm_directory)
     pred_gen_dir_path = os.path.join(pred_gen_directory)
 
@@ -118,6 +118,7 @@ def evaluate_model(gt_directory, gt_raw_directory, sm_directory, pred_gen_direct
     gt_raw_files = os.listdir(gt_raw_dir_path)
     sm_files = os.listdir(sm_dir_path)
     gt_generalized_files = os.listdir(gt_generalized_dir_path)
+    print(gt_generalized_dir_path)
     pred_gen_files = os.listdir(pred_gen_dir_path)
 
     print(len(gt_files), len(gt_raw_files), len(sm_files), len(gt_generalized_files), len(pred_gen_files))
@@ -136,7 +137,7 @@ def evaluate_model(gt_directory, gt_raw_directory, sm_directory, pred_gen_direct
 
     gt_paths = [os.path.join(gt_directory, file) for file in gt_files_sorted]
     gt_raw_paths = [os.path.join(gt_raw_directory, file) for file in gt_raw_files_sorted]
-    gt_generalized_paths = [os.path.join(config.GENERALIZED_MAPS_PATH, file) for file in gt_generalized_files_sorted]
+    gt_generalized_paths = [os.path.join(pred_gen_directory, file) for file in gt_generalized_files_sorted]
     sm_paths = [os.path.join(sm_directory, file) for file in sm_files_sorted]
     pred_gen_paths = [os.path.join(pred_gen_directory, file) for file in pred_gen_files_sorted]
 

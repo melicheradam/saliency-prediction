@@ -6,6 +6,15 @@ from tqdm import tqdm
 import shutil
 
 
+# Return list of Subject names
+def load_sub_names(dirpath):
+    with open(dirpath, "r") as file:
+        lines = file.readlines()
+
+    lines = [line.strip() for line in lines]
+    return lines
+
+
 # Return files inside the provided directory and subdirectories
 def find_files_in_dir(dirpath, filename=None, filenameContains=None):
     files = []
