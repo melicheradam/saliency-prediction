@@ -1,0 +1,4 @@
+FROM python:2.7.17
+COPY . /labs
+WORKDIR /labs
+RUN python -m pip install -r requirements.txt
