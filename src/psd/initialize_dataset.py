@@ -1,3 +1,5 @@
+from pathlib import Path
+
 import scipy.io
 import argparse
 import cv2
@@ -34,7 +36,7 @@ def generate_generalized_maps(fixations_dir, output_dir):
 
     if os.path.exists(output_dir):
         shutil.rmtree(output_dir)
-    os.mkdir(output_dir)
+    Path(output_dir).mkdir(parents=True)
 
     all_fixation_maps = find_files_in_dir(fixations_dir, filenameContains='.png') # Only saliency maps are jpg, Fixation maps are png
     unique_file_names = set([os.path.basename(f) for f in all_fixation_maps])
@@ -118,7 +120,7 @@ def generate_binary_maps(fixations_dir, raw_fixations_dir, output_dir):
         fm_output_dir = os.path.join(output_dir, subject_name)
         if os.path.exists(fm_output_dir):
             shutil.rmtree(fm_output_dir)
-        os.mkdir(fm_output_dir)
+        Path(fm_output_dir).mkdir(parents=True)
 
         # Find fixation file belonging to the subject
         belonging_fixation_file = [f for f in raw_fixation_files if subject_name in f][0]
@@ -136,7 +138,6 @@ def generate_binary_maps(fixations_dir, raw_fixations_dir, output_dir):
                 total=len(fixation_data["ImfixDataALL"])
             )
         )
-        break
 
 
 # Convert .mat fixation files to .csv
@@ -174,12 +175,12 @@ def main():
                         help="path for the output generalized maps directory")
 
     args = parser.parse_args()
-    #convert_mat_to_json(args.raw_fixations_path)
+    convert_mat_to_json(args.raw_fixations_path)
     print("Generating personalized maps...")
     generate_binary_maps(args.fixations_path, args.raw_fixations_path, args.binary_path)
 
     print("Generating generalized maps...")
-    #generate_generalized_maps(args.fixations_path, args.generalized_path)
+    generate_generalized_maps(args.fixations_path, args.generalized_path)
 
 
 if __name__ == "__main__":

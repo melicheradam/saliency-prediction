@@ -99,14 +99,14 @@ def discrepancy():
 
 @cli.command()
 @click.argument("dataset", type=click.Choice(["PSD", "CAT2000"]))
-def preprocess_dataset(dataset_str):
-    dataset = _get_dataset(dataset_str)
+def preprocess_dataset(dataset):
+    dataset_class = _get_dataset(dataset)
     print("Preparing dataset...")
-    if isinstance(dataset, PSD):
-        # preprocess dataset docker
+    if isinstance(dataset_class, PSD):
+        # preprocess dataset_class docker
         command_args = " -fix {} -raw {} -binary {} -generalized {}"\
-            .format(dataset.fixations.as_posix(), dataset.raw_fixations.as_posix(),
-                    dataset.binary_fixations.as_posix(), dataset.generalized_fixations.as_posix())
+            .format(dataset_class.fixations.as_posix(), dataset_class.raw_fixations.as_posix(),
+                    dataset_class.binary_fixations.as_posix(), dataset_class.generalized_fixations.as_posix())
 
         _run_in_docker("python3", "python src/psd/initialize_dataset.py", command_args)
 
