@@ -1,9 +1,11 @@
 import inspect
 import os
+import random
+import shutil
 from pathlib import Path
 
 BASE_DIR = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-RESULTS_DIR = os.path.join(BASE_DIR, "test_results")
+RESULTS_DIR = os.path.join(BASE_DIR, "test-results")
 
 
 class DATASET:
@@ -26,12 +28,15 @@ class DATASET:
         assert str(self.stimuli) != "."
         assert str(self.test_set) != "."
 
-
     def create_test_set(self):
         raise NotImplementedError
 
 
 class PSD(DATASET):
+
+    observers = ["Sub_1", "Sub_2", "Sub_3", "Sub_4", "Sub_5", "Sub_6", "Sub_7", "Sub_8", "Sub_9", "Sub_10",
+                 "Sub_11", "Sub_12", "Sub_13", "Sub_14", "Sub_15", "Sub_16", "Sub_17", "Sub_18", "Sub_19", "Sub_20",
+                 "Sub_21", "Sub_22", "Sub_23", "Sub_24", "Sub_25", "Sub_26", "Sub_27", "Sub_28", "Sub_29", "Sub_30"]
 
     def __init__(self):
         super().__init__()
@@ -46,5 +51,15 @@ class PSD(DATASET):
         self.ensureconfig()
 
     def create_test_set(self):
+        shutil.rmtree(os.path.join(BASE_DIR, self.test_set), ignore_errors=True)
+        self.test_set.mkdir(parents=True)
 
-        pass
+        image_set = list(os.listdir(os.path.join(BASE_DIR, self.stimuli)))
+        random.shuffle(image_set)
+
+        for idx, image in enumerate(image_set):
+            if idx == 320:
+                break
+
+            shutil.copyfile(os.path.join(BASE_DIR, *[self.stimuli, image]),
+                            os.path.join(BASE_DIR, *[self.test_set, image]))

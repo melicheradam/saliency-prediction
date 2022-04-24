@@ -147,7 +147,8 @@ def _test_model(load_name, command_args, observer=""):
     _load_name = load_name
     if observer != "":
         _load_name += "_" + observer
-    print("Predicting maps by model {}...".format(load_name))
+    _load_model(_load_name)
+    print("Predicting maps by model {}...".format(_load_name))
 
     shutil.rmtree(os.path.join(RESULTS_DIR, *[_load_name, "discrepancy"]), ignore_errors=True)
     shutil.rmtree(os.path.join(RESULTS_DIR, *[_load_name, "saliency"]), ignore_errors=True)
@@ -158,7 +159,7 @@ def _test_model(load_name, command_args, observer=""):
     _run_in_docker("python3-tensorflow", "python encoder-decoder-model/main.py", command_args)
 
     shutil.copytree(os.path.join(BASE_DIR, *["encoder-decoder-model", "results", "images"]),
-                    os.path.join(RESULTS_DIR, *[_load_name, "saliency"]))
+                    os.path.join(RESULTS_DIR, *[_load_name, "saliency"]), dirs_exist_ok=True)
 
 
 def _prepare_training(model_type, observer_name, dataset: DATASET):

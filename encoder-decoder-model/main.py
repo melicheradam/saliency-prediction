@@ -232,7 +232,7 @@ def test_model(dataset, paths, device):
     conf = tf.ConfigProto()
     conf.gpu_options.allow_growth = True
 
-    shutil.rmtree(paths["images"])
+    shutil.rmtree(paths["images"], ignore_errors=True)
     os.makedirs(paths["images"])
 
     with tf.Session(config=conf) as sess:
