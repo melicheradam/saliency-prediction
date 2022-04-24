@@ -87,13 +87,47 @@ def make_test_set(dataset: str):
     dataset_class.create_test_set()
 
 @cli.command()
-@click.option("--saliency", type=click.Path(), help="Path for the generated saliency maps")
-@click.option("--base-saliency", type=click.Path(), help="Path for other model's saliency maps")
-@click.option("--model-name", help="Serialized model name")
-@click.option("--observer", help="Observer name (if not provided all observers will be evaluated!)")
-@click.argument("model_type")
-def evaluate(saliency, base_saliency, model_name, observer, model_type):
+@click.option("--load-name", help="Name of the model which will be evaluated", required=True)
+@click.option("--observer", help="Observer name (if not provided all observers will be evaluated!)", default="")
+@click.option("--model-type", type=click.Choice(["generalized", "personalized"]), required=True)
+@click.option("--infogain-name", help="Full name of the model (including observer) which will be used in the Infogain metric", default="")
+@click.argument("dataset", type=click.Choice(["PSD", "SALICON"]))
+def evaluate(observer: str, load_name: str, model_type: str, infogain_name: str, dataset: str):
     print("Evaluating performance of the personalized model...")
+    dataset_class = _get_dataset(dataset)
+
+    _load_name = load_name
+    if observer != "":
+        _load_name = load_name + "_" + observer
+    infogain_path = Path(os.path.join(RESULTS_DIR, *[_load_name, "saliency"])) if infogain_name == "" \
+                else Path(os.path.join(RESULTS_DIR, *[infogain_name, "saliency"]))
+
+    command_args = " -gt {} -sal {} -pg {} -bin {} -output {}"
+
+    # evaluate a specific observer or generalized
+    if observer != "" or model_type == "generalized":
+        command_args = command_args.format(
+            dataset_class.fixations.joinpath(observer).as_posix(), Path(os.path.join(RESULTS_DIR, *[_load_name, "saliency"])).as_posix(),
+            infogain_path.as_posix(), dataset_class.binary_fixations.joinpath(observer).as_posix(),
+            Path(os.path.join(RESULTS_DIR, *[_load_name, "evaluation.json"])).as_posix()
+        )
+        _run_in_docker("python2", "python src/evaluate_results.py", command_args)
+    # evaluate all observers
+    elif model_type == "personalized":
+        for observer in dataset_class.observers:
+            _load_name = load_name + "_" + observer
+            infogain_path = Path(os.path.join(RESULTS_DIR, *[_load_name, "saliency"])) if infogain_name == "" \
+                else Path(os.path.join(RESULTS_DIR, *[infogain_name, "saliency"]))
+            _command_args = command_args.format(
+                dataset_class.fixations.joinpath(observer).as_posix(), Path(os.path.join(RESULTS_DIR, *[_load_name, "saliency"])).as_posix(),
+                infogain_path.as_posix(), dataset_class.binary_fixations.joinpath(observer).as_posix(),
+                Path(os.path.join(RESULTS_DIR, *[_load_name, "evaluation.json"])).as_posix()
+            )
+            print(_command_args)
+            _run_in_docker("python2", "python src/evaluate_results.py", _command_args)
+    else:
+        AttributeError("Wrong combination of input attributes")
+
 
 @cli.command()
 def discrepancy():

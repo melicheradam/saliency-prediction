@@ -5,7 +5,7 @@ import shutil
 from pathlib import Path
 
 BASE_DIR = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-RESULTS_DIR = os.path.join(BASE_DIR, "test-results")
+RESULTS_DIR = os.path.join("test-results")
 
 
 class DATASET:

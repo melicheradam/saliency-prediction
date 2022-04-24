@@ -118,7 +118,6 @@ def evaluate_model(gt_directory, gt_raw_directory, sm_directory, pred_gen_direct
     gt_raw_files = os.listdir(gt_raw_dir_path)
     sm_files = os.listdir(sm_dir_path)
     gt_generalized_files = os.listdir(gt_generalized_dir_path)
-    print(gt_generalized_dir_path)
     pred_gen_files = os.listdir(pred_gen_dir_path)
 
     print(len(gt_files), len(gt_raw_files), len(sm_files), len(gt_generalized_files), len(pred_gen_files))
@@ -254,8 +253,8 @@ def main():
     parser.add_argument("-gt", "--ground-truth", metavar="GT",
                         help="path for groundtruth saliency maps directory")
 
-    parser.add_argument("-raw", "--raw-fixations", metavar="RW",
-                        help="path for raw ground-truth fixation files (binary maps)")
+    parser.add_argument("-bin", "--binary-fixations", metavar="BN",
+                        help="path for binary maps")
 
     parser.add_argument("-sal", "--saliency-maps", metavar="SAL",
                         help="path for result saliency maps directory")
@@ -267,7 +266,7 @@ def main():
                         help="saliency maps predicted by the generalized model")
 
     args = parser.parse_args()
-    evaluate_model(args.ground_truth, args.raw_fixations, args.saliency_maps, args.predicted_generalized, args.output_file)
+    evaluate_model(args.ground_truth, args.binary_fixations, args.saliency_maps, args.predicted_generalized, args.output_file)
 
     end = time.time()
 
