@@ -67,10 +67,14 @@ def test(observer: str, load_name: str, discrepancy: bool, model_type: str, data
     # test a specific observer or generalized
     if observer != "" or model_type == "generalized":
         _test_model(load_name, command_args, observer)
+        if discrepancy:
+            _produce_discrepancy(load_name, dataset_class, observer)
     # train all observers
     elif model_type == "personalized":
         for observer in dataset_class.observers:
             _test_model(load_name, command_args, observer)
+            if discrepancy:
+                _produce_discrepancy(load_name, dataset_class, observer)
     else:
         AttributeError("Wrong combination of input attributes")
 
@@ -150,16 +154,28 @@ def _test_model(load_name, command_args, observer=""):
     _load_model(_load_name)
     print("Predicting maps by model {}...".format(_load_name))
 
-    shutil.rmtree(os.path.join(RESULTS_DIR, *[_load_name, "discrepancy"]), ignore_errors=True)
     shutil.rmtree(os.path.join(RESULTS_DIR, *[_load_name, "saliency"]), ignore_errors=True)
-
-    Path(os.path.join(RESULTS_DIR, *[_load_name, "discrepancy"])).mkdir(parents=True)
     Path(os.path.join(RESULTS_DIR, *[_load_name, "saliency"])).mkdir(parents=True)
 
     _run_in_docker("python3-tensorflow", "python encoder-decoder-model/main.py", command_args)
 
     shutil.copytree(os.path.join(BASE_DIR, *["encoder-decoder-model", "results", "images"]),
                     os.path.join(RESULTS_DIR, *[_load_name, "saliency"]), dirs_exist_ok=True)
+
+
+def _produce_discrepancy(load_name, dataset: DATASET, observer=""):
+    _load_name = load_name
+    if observer != "":
+        _load_name += "_" + observer
+
+    print("Producing discrepancy maps for model {}...".format(load_name))
+    shutil.rmtree(os.path.join(RESULTS_DIR, *[_load_name, "discrepancy"]), ignore_errors=True)
+    Path(os.path.join(RESULTS_DIR, *[_load_name, "discrepancy"])).mkdir(parents=True)
+    command_args = " -gt {} -sal {} -orig {} -out {}".format(
+        dataset.fixations.as_posix(), Path(os.path.join(RESULTS_DIR, *[_load_name, "saliency"])).as_posix(),
+        dataset.test_set.as_posix(), Path(os.path.join(RESULTS_DIR, *[_load_name, "discrepancy"])).as_posix()
+    )
+    _run_in_docker("python3-tensorflow", "python src/differentiate_maps.py", command_args)
 
 
 def _prepare_training(model_type, observer_name, dataset: DATASET):
