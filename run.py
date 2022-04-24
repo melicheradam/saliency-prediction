@@ -5,11 +5,13 @@ import docker
 import click
 import shutil
 
-from config import DATASET, PSD, BASE_DIR, RESULTS_DIR
+from config import DATASET, PSD, BASE_DIR, RESULTS_DIR, CAT2000
 
 DOCKER_CLIENT = docker.from_env()
 DOCKER_VOLUME = BASE_DIR + ":/labs"
 DOCKER_ENV = "PYTHONPATH=/labs"
+AVAILABLE_DATASETS = ["PSD", "CAT2000"]
+
 
 @click.group()
 def cli():
@@ -21,7 +23,7 @@ def cli():
 @click.option("--load-name", help="Name to load a serialized model, can be empty for the default VGG16 weights", default="")
 @click.option("--save-name", help="Name which will be used to serialize this model", default="")
 @click.option("--model-type", type=click.Choice(["generalized", "personalized"]), required=True)
-@click.argument("dataset", type=click.Choice(["PSD", "SALICON"]))
+@click.argument("dataset", type=click.Choice(AVAILABLE_DATASETS + ["SALICON"]))
 def train(observer: str, load_name: str, save_name: str, model_type: str, dataset: str):
     dataset_class = _get_dataset(dataset)
     command_args = " train -d {}"
@@ -32,7 +34,6 @@ def train(observer: str, load_name: str, save_name: str, model_type: str, datase
 
     # train a specific observer or generalized
     elif observer != "" or model_type == "generalized":
-        save_name += "_" + observer
         _prepare_training(model_type, observer, dataset_class)
         # naming is not optimal here, but model takes this as an "dataset" argument
         command_args = command_args.format("personalized")
@@ -54,7 +55,7 @@ def train(observer: str, load_name: str, save_name: str, model_type: str, datase
 @click.option("--observer", help="Observer name (if not provided all observers will be tested!)", default="")
 @click.option("--discrepancy", help="Produce discrepancy maps", is_flag=True)
 @click.option("--model-type", type=click.Choice(["generalized", "personalized"]), required=True)
-@click.argument("dataset", type=click.Choice(["PSD", "SALICON"]))
+@click.argument("dataset", type=click.Choice(AVAILABLE_DATASETS + ["SALICON"]))
 def test(observer: str, load_name: str, discrepancy: bool, model_type: str, dataset: str):
     command_args = " test -d {} -p {}"
     dataset_class = _get_dataset(dataset)
@@ -80,20 +81,21 @@ def test(observer: str, load_name: str, discrepancy: bool, model_type: str, data
 
 
 @cli.command()
-@click.argument("dataset", type=click.Choice(["PSD", "SALICON"]))
+@click.argument("dataset", type=click.Choice(AVAILABLE_DATASETS))
 def make_test_set(dataset: str):
     dataset_class = _get_dataset(dataset)
     print("Creating test image set in path " + str(dataset_class.test_set))
     dataset_class.create_test_set()
+
 
 @cli.command()
 @click.option("--load-name", help="Name of the model which will be evaluated", required=True)
 @click.option("--observer", help="Observer name (if not provided all observers will be evaluated!)", default="")
 @click.option("--model-type", type=click.Choice(["generalized", "personalized"]), required=True)
 @click.option("--infogain-name", help="Full name of the model (including observer) which will be used in the Infogain metric", default="")
-@click.argument("dataset", type=click.Choice(["PSD", "SALICON"]))
+@click.argument("dataset", type=click.Choice(AVAILABLE_DATASETS))
 def evaluate(observer: str, load_name: str, model_type: str, infogain_name: str, dataset: str):
-    print("Evaluating performance of the personalized model...")
+    print("Evaluating performance of the model...")
     dataset_class = _get_dataset(dataset)
 
     _load_name = load_name
@@ -130,28 +132,23 @@ def evaluate(observer: str, load_name: str, model_type: str, infogain_name: str,
 
 
 @cli.command()
-def discrepancy():
-    print("Producing discrepancy maps...")
-    shutil.rmtree(os.path.join(*["encoder-decoder-model", "data", "personalized", "val-stimuli"]))
-
-
-@cli.command()
-@click.argument("dataset", type=click.Choice(["PSD", "CAT2000"]))
+@click.argument("dataset", type=click.Choice(AVAILABLE_DATASETS))
 def preprocess_dataset(dataset):
     dataset_class = _get_dataset(dataset)
     print("Preparing dataset...")
     if isinstance(dataset_class, PSD):
-        # preprocess dataset_class docker
         command_args = " -fix {} -raw {} -binary {} -generalized {}"\
             .format(dataset_class.fixations.as_posix(), dataset_class.raw_fixations.as_posix(),
                     dataset_class.binary_fixations.as_posix(), dataset_class.generalized_fixations.as_posix())
 
         _run_in_docker("python3", "python src/psd/initialize_dataset.py", command_args)
 
+    elif isinstance(dataset_class, CAT2000):
+        command_args = " -fix {} -raw {} -binary {} -generalized {}"\
+            .format(dataset_class.fixations.as_posix(), dataset_class.raw_fixations.as_posix(),
+                    dataset_class.binary_fixations.as_posix(), dataset_class.generalized_fixations.as_posix())
 
-    if dataset == "CAT2000":
-        # TODO
-        pass
+        _run_in_docker("python3", "python src/psd/initialize_dataset.py", command_args)
 
 
 def _load_model(model_name):
@@ -162,10 +159,6 @@ def _load_model(model_name):
 def _save_model(model_name):
     print("Saving model named " + model_name + "...")
     _run_in_docker("python3", "bash encoder-decoder-model/serialize_current_model.sh ", model_name)
-
-
-def _prepare_evaluation():
-    pass
 
 
 def _train_model(load_name, save_name, command_args, observer=""):
@@ -213,7 +206,7 @@ def _produce_discrepancy(load_name, dataset: DATASET, observer=""):
 
 
 def _prepare_training(model_type, observer_name, dataset: DATASET):
-    print("Preparing data for personalized training...")
+    print("Preparing data for training...")
     try:
         shutil.rmtree(os.path.join(*["encoder-decoder-model", "data", "personalized", "stimuli"]))
         shutil.rmtree(os.path.join(*["encoder-decoder-model", "data", "personalized", "val-stimuli"]))
@@ -236,7 +229,7 @@ def _get_dataset(dataset: str) -> DATASET:
     if dataset == "PSD":
         return PSD()
     elif dataset == "CAT2000":
-        return PSD()
+        return CAT2000()
 
 
 def _run_in_docker(image: str, command: str, args: str):

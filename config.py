@@ -45,7 +45,7 @@ class PSD(DATASET):
         self.raw_fixations = Path("data/psd/raw")
         self.binary_fixations = Path("data/psd/binary")
         self.generalized_fixations = Path("data/psd/generalized")
-        self.stimuli = Path("data/psd/generalized")
+        self.stimuli = Path("data/psd/images")
         self.test_set = Path("data/psd/test")
 
         self.ensureconfig()
@@ -63,3 +63,19 @@ class PSD(DATASET):
 
             shutil.copyfile(os.path.join(BASE_DIR, *[self.stimuli, image]),
                             os.path.join(BASE_DIR, *[self.test_set, image]))
+
+
+class CAT2000(DATASET):
+
+    def __init__(self):
+        super().__init__()
+
+        self.fixations = Path("data/cat2000/fixations")
+        self.raw_fixations = Path("data/cat2000/raw")
+        self.binary_fixations = Path("data/cat2000/binary")
+        self.generalized_fixations = Path("data/cat2000/generalized")
+        self.stimuli = Path("data/cat2000/images")
+        self.test_set = Path("data/cat2000/test")
+
+        self.ensureconfig()
+

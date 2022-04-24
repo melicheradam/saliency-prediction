@@ -1,26 +1,13 @@
 import argparse
 import functools
-import inspect
 import operator
 import os
-import sys
-import tables
 import pandas as pd
-import numpy as np
-import h5py
-from pymatreader import read_mat
-
-
 import cv2
 import numpy as np
 from scipy import io
-
-currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-parentdir = os.path.dirname(currentdir)
-sys.path.insert(0, parentdir)
-
-from helpers import find_files_in_dir
-from psd.generate_maps import sanitize
+from src.helpers import find_files_in_dir
+from src.psd.generate_maps import sanitize
 
 INPUT_FIXATION_WIDTH = 1920
 INPUT_FIXATION_HEIGHT = 1080
