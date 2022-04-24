@@ -125,7 +125,7 @@ def evaluate(observer: str, load_name: str, model_type: str, infogain_name: str,
                 infogain_path.as_posix(), dataset_class.binary_fixations.joinpath(observer).as_posix(),
                 Path(os.path.join(RESULTS_DIR, *[_load_name, "evaluation.json"])).as_posix()
             )
-            print(_command_args)
+            print("Evaluating model {}...".format(_load_name))
             _run_in_docker("python2", "python src/evaluate_results.py", _command_args)
     else:
         AttributeError("Wrong combination of input attributes")
@@ -149,6 +149,13 @@ def preprocess_dataset(dataset):
             .format(dataset_class.raw_fixations.as_posix(), dataset_class.binary_fixations.as_posix())
 
         _run_in_docker("python3", "python src/cat2000/generate_maps.py", command_args)
+
+
+@cli.command()
+@click.argument("model-name")
+def show_results(model_name):
+    command_args = " -res {} -name {}".format(RESULTS_DIR, model_name)
+    _run_in_docker("python3", "python src/show_training_results.py", command_args)
 
 
 def _load_model(model_name):

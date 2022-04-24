@@ -1,20 +1,16 @@
+import argparse
 import os
 import shutil
+from pathlib import Path
+
 from helpers import find_files_in_dir
 from scipy.stats import shapiro
 import json
 import numpy as np
 import matplotlib
-matplotlib.use('Agg')
 import seaborn as sns
 import config
-
-
-result_files = find_files_in_dir('training_logs', filenameContains='json')
-
-generalized_results = sorted([r for r in result_files if 'generalized' in r])
-personalized_results = sorted([r for r in result_files if 'personalized' in r])
-unisal_results = sorted([r for r in result_files if 'unisal' in r])
+matplotlib.use('Agg')
 
 
 def plot_distribution(label_x, data, output_path, label_y='Number of observers',):
@@ -90,7 +86,7 @@ def print_overall_scores(results, plot=False):
         print('kldiv score (0 = best):', np.mean(kldiv_values))
 
     if plot:
-        output_path = 'training_logs/distributions-validation-set'
+        output_path = 'test-results/distributions-validation-set'
         if os.path.exists(output_path):
             shutil.rmtree(output_path)
 
@@ -104,8 +100,6 @@ def print_overall_scores(results, plot=False):
         plot_distribution(label_x='SIM distribution', data=sim_values, output_path=output_path)
         plot_distribution(label_x='CC distribution', data=cc_values, output_path=output_path)
         plot_distribution(label_x='KL-div distribution', data=kldiv_values, output_path=output_path)
-
-
 
 def print_individual_scores(results):
 
@@ -244,7 +238,7 @@ def print_comparison(res_a, res_b, plot=False):
         print_shapiro(kldiv_values)
 
     if plot:
-        output_path = 'training_logs/comparison-validation-set'
+        output_path = 'test-results/comparison-validation-set'
         if os.path.exists(output_path):
             shutil.rmtree(output_path)
 
@@ -260,23 +254,36 @@ def print_comparison(res_a, res_b, plot=False):
         plot_distribution(label_x='KL-div improvement', data=kldiv_values, output_path=output_path)
 
 
-# print("Overall score of the generalized model:")
-# print_overall_scores(generalized_results)
+def main():
+    """The main function reads the command line arguments, invokes the
+       creation of appropriate path variables, and starts the training
+       or testing procedure for a model.
+    """
 
-# print("Individual scores of the generalized model:")
-# print_individual_scores(generalized_results)
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-print("Overall score of the personalized model:")
-print_overall_scores(personalized_results, plot=True)
+    parser.add_argument("-name", "--model-name", metavar="MN",
+                        help="name of the model which was evaluated")
 
-print("Individual scores of the personalized model:")
-print_individual_scores(personalized_results)
+    parser.add_argument("-res", "--results-dir", metavar="RD",
+                        help="path to results directory")
 
-# print("Overall score of the unisal model:")
-# print_overall_scores(unisal_results)
+    args = parser.parse_args()
+    res_dir = Path(args.results_dir)
+    result_files = []
+    for item in os.listdir(res_dir):
+        if args.model_name in str(item):
+            result_files += find_files_in_dir(os.path.join(res_dir, item), filenameContains='json')
 
-print("Comparing Personalized model over Initial Generalized model:")
-print_comparison(generalized_results, personalized_results, plot=True)
+    print("Overall score of the personalized model:")
+    print_overall_scores(result_files, plot=True)
 
-# print("Comparing Personalized model over Unisal Generalized model:")
-# print_comparison(unisal_results, personalized_results)
+    print("Individual scores of the personalized model:")
+    print_individual_scores(result_files)
+
+
+if __name__ == "__main__":
+    main()
+
+
