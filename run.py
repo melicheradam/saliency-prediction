@@ -144,11 +144,11 @@ def preprocess_dataset(dataset):
         _run_in_docker("python3", "python src/psd/initialize_dataset.py", command_args)
 
     elif isinstance(dataset_class, CAT2000):
-        command_args = " -fix {} -raw {} -binary {} -generalized {}"\
-            .format(dataset_class.fixations.as_posix(), dataset_class.raw_fixations.as_posix(),
-                    dataset_class.binary_fixations.as_posix(), dataset_class.generalized_fixations.as_posix())
+        dataset_class.create_dir_structure()
+        command_args = " -raw {} -out {}"\
+            .format(dataset_class.raw_fixations.as_posix(), dataset_class.binary_fixations.as_posix())
 
-        _run_in_docker("python3", "python src/psd/initialize_dataset.py", command_args)
+        _run_in_docker("python3", "python src/cat2000/generate_maps.py", command_args)
 
 
 def _load_model(model_name):

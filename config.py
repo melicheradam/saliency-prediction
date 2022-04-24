@@ -70,12 +70,37 @@ class CAT2000(DATASET):
     def __init__(self):
         super().__init__()
 
+        # path to directory which contains FIXATIONLOCS, FIXATIONMAPS and Stimuli directories
+        self.train_set_path = Path("data/cat2000/trainSet")
+
         self.fixations = Path("data/cat2000/fixations")
         self.raw_fixations = Path("data/cat2000/raw")
         self.binary_fixations = Path("data/cat2000/binary")
-        self.generalized_fixations = Path("data/cat2000/generalized")
+        self.generalized_fixations = Path("data/cat2000/fixations")
         self.stimuli = Path("data/cat2000/images")
-        self.test_set = Path("data/cat2000/test")
+        # here we want to test on whole dataset
+        self.test_set = Path("data/cat2000/images")
 
         self.ensureconfig()
 
+    def create_dir_structure(self):
+
+        self.raw_fixations.mkdir(parents=True, exist_ok=True)
+        self.rename_files(self.train_set_path.joinpath("FIXATIONLOCS"), self.raw_fixations)
+        self.fixations.mkdir(parents=True, exist_ok=True)
+        self.rename_files(self.train_set_path.joinpath("FIXATIONMAPS"), self.fixations)
+        self.stimuli.mkdir(parents=True, exist_ok=True)
+        self.rename_files(self.train_set_path.joinpath("Stimuli"), self.stimuli)
+        self.binary_fixations.mkdir(parents=True, exist_ok=True)
+
+    def rename_files(self, dir: Path, out_dir: Path):
+
+        for folder in os.listdir(dir):
+            for file in os.listdir(dir.joinpath(folder)):
+                if str(file) == "Output":
+                    continue
+                new_name = str(folder) + "_" + str(file)
+                shutil.copy(
+                    dir.joinpath(folder).joinpath(file),
+                    out_dir.joinpath(new_name)
+                )
