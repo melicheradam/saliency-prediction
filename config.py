@@ -11,6 +11,7 @@ RESULTS_DIR = os.path.join("test-results")
 class DATASET:
 
     observers = None
+    name = None
 
     def __init__(self):
         self.fixations = Path()
@@ -33,7 +34,7 @@ class DATASET:
 
 
 class PSD(DATASET):
-
+    name = "psd"
     observers = ["Sub_1", "Sub_2", "Sub_3", "Sub_4", "Sub_5", "Sub_6", "Sub_7", "Sub_8", "Sub_9", "Sub_10",
                  "Sub_11", "Sub_12", "Sub_13", "Sub_14", "Sub_15", "Sub_16", "Sub_17", "Sub_18", "Sub_19", "Sub_20",
                  "Sub_21", "Sub_22", "Sub_23", "Sub_24", "Sub_25", "Sub_26", "Sub_27", "Sub_28", "Sub_29", "Sub_30"]
@@ -64,6 +65,7 @@ class PSD(DATASET):
 
 
 class CAT2000(DATASET):
+    name = "cat2000"
 
     def __init__(self):
         super().__init__()

@@ -65,18 +65,20 @@ def test(observer: str, load_name: str, discrepancy: bool, model_type: str, data
 
     if dataset == "SALICON":
         command_args = command_args.format("salicon", dataset_class.test_set.as_posix())
+        _run_in_docker("python3-tensorflow", "python encoder-decoder-model/main.py", command_args)
+        return
     else:
         command_args = command_args.format("personalized", dataset_class.test_set.as_posix())
 
     # test a specific observer
-    if observer != "" or dataset == "SALICON":
-        _test_model(load_name, command_args, observer)
-        if discrepancy and dataset != "SALICON":
+    if observer != "":
+        _test_model(load_name, model_type, dataset_class, command_args, observer)
+        if discrepancy:
             _produce_discrepancy(load_name, dataset_class, observer)
     # test all observers
     else:
         for observer in dataset_class.observers:
-            _test_model(load_name, command_args, observer)
+            _test_model(load_name, model_type, dataset_class, command_args, observer)
             if discrepancy:
                 _produce_discrepancy(load_name, dataset_class, observer)
 
@@ -175,36 +177,44 @@ def _train_model(load_name, save_name, command_args, observer=""):
         _save_model(_save_name)
 
 
-def _test_model(load_name, model_type, command_args, observer=""):
-    _load_name = load_name
-    if observer != "":
-        _load_name += "_" + observer
+def _test_model(load_name: str, model_type: str, dataset: DATASET, command_args: str, observer=""):
+    _load_name = load_name + "_" + dataset.name
+
     if model_type == "generalized":
         _load_model(load_name)
     else:
-        _load_model(_load_name)
+        _load_model(load_name + "_" + observer)
+
     print("Predicting maps by model {}...".format(_load_name))
 
-    shutil.rmtree(os.path.join(RESULTS_DIR, *[_load_name, "saliency"]), ignore_errors=True)
-    Path(os.path.join(RESULTS_DIR, *[_load_name, "saliency"])).mkdir(parents=True)
+    result_path = os.path.join(RESULTS_DIR, _load_name)
+
+    if observer != "":
+        result_path.join(observer)
+
+    shutil.rmtree(result_path.join("saliency"), ignore_errors=True)
+    Path(result_path.join("saliency")).mkdir(parents=True)
 
     _run_in_docker("python3-tensorflow", "python encoder-decoder-model/main.py", command_args)
 
     shutil.copytree(os.path.join(BASE_DIR, *["encoder-decoder-model", "results", "images"]),
-                    os.path.join(RESULTS_DIR, *[_load_name, "saliency"]), dirs_exist_ok=True)
+                    result_path.join("saliency"), dirs_exist_ok=True)
 
 
 def _produce_discrepancy(load_name, dataset: DATASET, observer=""):
-    _load_name = load_name
-    if observer != "":
-        _load_name += "_" + observer
+    _load_name = load_name + "_" + dataset.name
 
     print("Producing discrepancy maps for model {}...".format(load_name))
-    shutil.rmtree(os.path.join(RESULTS_DIR, *[_load_name, "discrepancy"]), ignore_errors=True)
+    result_path = os.path.join(RESULTS_DIR, _load_name)
+
+    if observer != "":
+        result_path.join(observer)
+
+    shutil.rmtree(result_path.join("discrepancy"), ignore_errors=True)
     Path(os.path.join(RESULTS_DIR, *[_load_name, "discrepancy"])).mkdir(parents=True)
     command_args = " -gt {} -sal {} -orig {} -out {}".format(
-        dataset.fixations.as_posix(), Path(os.path.join(RESULTS_DIR, *[_load_name, "saliency"])).as_posix(),
-        dataset.test_set.as_posix(), Path(os.path.join(RESULTS_DIR, *[_load_name, "discrepancy"])).as_posix()
+        dataset.fixations.as_posix(), Path(result_path.join("saliency")).as_posix(),
+        dataset.test_set.as_posix(), Path(result_path.join("discrepancy")).as_posix()
     )
     _run_in_docker("python3-tensorflow", "python src/differentiate_maps.py", command_args)
 
