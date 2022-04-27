@@ -1,4 +1,0 @@
-FROM tensorflow/tensorflow:2.3.1-gpu
-COPY . /labs
-WORKDIR /labs
-RUN apt-get update && apt-get install -y libsm6 libxext6 libxrender-dev && pip install --upgrade pip && pip install -r requirements.txt
