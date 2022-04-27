@@ -276,11 +276,14 @@ def main():
         if args.model_name in str(item):
             result_files += find_files_in_dir(os.path.join(res_dir, item), filenameContains='json')
 
+
+    #print("Individual scores of the personalized model:")
+    #print_individual_scores(result_files)
+
     print("Overall score of the personalized model:")
     print_overall_scores(result_files, plot=True)
 
-    print("Individual scores of the personalized model:")
-    print_individual_scores(result_files)
+
 
 
 if __name__ == "__main__":

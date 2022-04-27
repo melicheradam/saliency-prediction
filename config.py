@@ -46,7 +46,7 @@ class PSD(DATASET):
         self.binary_fixations = Path("data/psd/binary")
         self.generalized_fixations = Path("data/psd/generalized")
         self.stimuli = Path("data/psd/images")
-        self.test_set = Path("data/psd/test")
+        self.test_set = Path("encoder-decoder-model/data/personalized/test")
 
         self.ensureconfig()
 
@@ -58,7 +58,7 @@ class PSD(DATASET):
         random.shuffle(image_set)
 
         for idx, image in enumerate(image_set):
-            if idx == 320:
+            if idx == 160:
                 break
 
             shutil.copyfile(os.path.join(BASE_DIR, *[self.stimuli, image]),

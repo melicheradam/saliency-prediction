@@ -65,19 +65,17 @@ def test(observer: str, load_name: str, discrepancy: bool, model_type: str, data
     else:
         command_args = command_args.format("personalized", dataset_class.test_set.as_posix())
 
-    # test a specific observer or generalized
-    if observer != "" or model_type == "generalized":
+    # test a specific observer
+    if observer != "" or dataset == "SALICON":
         _test_model(load_name, command_args, observer)
-        if discrepancy:
+        if discrepancy and dataset != "SALICON":
             _produce_discrepancy(load_name, dataset_class, observer)
-    # train all observers
-    elif model_type == "personalized":
+    # test all observers
+    else:
         for observer in dataset_class.observers:
             _test_model(load_name, command_args, observer)
             if discrepancy:
                 _produce_discrepancy(load_name, dataset_class, observer)
-    else:
-        AttributeError("Wrong combination of input attributes")
 
 
 @cli.command()
@@ -91,10 +89,9 @@ def make_test_set(dataset: str):
 @cli.command()
 @click.option("--load-name", help="Name of the model which will be evaluated", required=True)
 @click.option("--observer", help="Observer name (if not provided all observers will be evaluated!)", default="")
-@click.option("--model-type", type=click.Choice(["generalized", "personalized"]), required=True)
 @click.option("--infogain-name", help="Full name of the model (including observer) which will be used in the Infogain metric", default="")
 @click.argument("dataset", type=click.Choice(AVAILABLE_DATASETS))
-def evaluate(observer: str, load_name: str, model_type: str, infogain_name: str, dataset: str):
+def evaluate(observer: str, load_name: str, infogain_name: str, dataset: str):
     print("Evaluating performance of the model...")
     dataset_class = _get_dataset(dataset)
 
@@ -107,7 +104,7 @@ def evaluate(observer: str, load_name: str, model_type: str, infogain_name: str,
     command_args = " -gt {} -sal {} -pg {} -bin {} -output {}"
 
     # evaluate a specific observer or generalized
-    if observer != "" or model_type == "generalized":
+    if observer != "":
         command_args = command_args.format(
             dataset_class.fixations.joinpath(observer).as_posix(), Path(os.path.join(RESULTS_DIR, *[_load_name, "saliency"])).as_posix(),
             infogain_path.as_posix(), dataset_class.binary_fixations.joinpath(observer).as_posix(),
@@ -115,7 +112,7 @@ def evaluate(observer: str, load_name: str, model_type: str, infogain_name: str,
         )
         _run_in_docker("python2", "python src/evaluate_results.py", command_args)
     # evaluate all observers
-    elif model_type == "personalized":
+    else:
         for observer in dataset_class.observers:
             _load_name = load_name + "_" + observer
             infogain_path = Path(os.path.join(RESULTS_DIR, *[_load_name, "saliency"])) if infogain_name == "" \
@@ -127,8 +124,9 @@ def evaluate(observer: str, load_name: str, model_type: str, infogain_name: str,
             )
             print("Evaluating model {}...".format(_load_name))
             _run_in_docker("python2", "python src/evaluate_results.py", _command_args)
-    else:
-        AttributeError("Wrong combination of input attributes")
+
+        command_args = " -res {} -name {}".format(RESULTS_DIR, load_name)
+        _run_in_docker("python3", "python src/show_training_results.py", command_args)
 
 
 @cli.command()
@@ -153,9 +151,10 @@ def preprocess_dataset(dataset):
 
 @cli.command()
 @click.argument("model-name")
-def show_results(model_name):
-    command_args = " -res {} -name {}".format(RESULTS_DIR, model_name)
-    _run_in_docker("python3", "python src/show_training_results.py", command_args)
+def merge_maps(model_name):
+    pass
+    #command_args = " -res {} -name {}".format(RESULTS_DIR, model_name)
+    #_run_in_docker("python3", "python src/show_training_results.py", command_args)
 
 
 def _load_model(model_name):
@@ -181,11 +180,14 @@ def _train_model(load_name, save_name, command_args, observer=""):
         _save_model(_save_name)
 
 
-def _test_model(load_name, command_args, observer=""):
+def _test_model(load_name, model_type, command_args, observer=""):
     _load_name = load_name
     if observer != "":
         _load_name += "_" + observer
-    _load_model(_load_name)
+    if model_type == "generalized":
+        _load_model(load_name)
+    else:
+        _load_model(_load_name)
     print("Predicting maps by model {}...".format(_load_name))
 
     shutil.rmtree(os.path.join(RESULTS_DIR, *[_load_name, "saliency"]), ignore_errors=True)
