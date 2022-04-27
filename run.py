@@ -46,6 +46,9 @@ def train(observer: str, load_name: str, save_name: str, model_type: str, datase
             command_args = command_args.format("personalized")
             _train_model(load_name, save_name, command_args, observer)
 
+    if isinstance(dataset_class, PSD):
+        dataset_class.create_test_set()
+
     else:
         AttributeError("Wrong combination of input attributes")
 
@@ -76,14 +79,6 @@ def test(observer: str, load_name: str, discrepancy: bool, model_type: str, data
             _test_model(load_name, command_args, observer)
             if discrepancy:
                 _produce_discrepancy(load_name, dataset_class, observer)
-
-
-@cli.command()
-@click.argument("dataset", type=click.Choice(AVAILABLE_DATASETS))
-def make_test_set(dataset: str):
-    dataset_class = _get_dataset(dataset)
-    print("Creating test image set in path " + str(dataset_class.test_set))
-    dataset_class.create_test_set()
 
 
 @cli.command()

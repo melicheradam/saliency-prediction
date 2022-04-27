@@ -46,22 +46,20 @@ class PSD(DATASET):
         self.binary_fixations = Path("data/psd/binary")
         self.generalized_fixations = Path("data/psd/generalized")
         self.stimuli = Path("data/psd/images")
-        self.test_set = Path("encoder-decoder-model/data/personalized/test")
+        self.test_set = Path("data/psd/test")
 
         self.ensureconfig()
 
     def create_test_set(self):
+        print("Creating test image set in path " + str(dataset_class.test_set))
         shutil.rmtree(os.path.join(BASE_DIR, self.test_set), ignore_errors=True)
         self.test_set.mkdir(parents=True)
 
-        image_set = list(os.listdir(os.path.join(BASE_DIR, self.stimuli)))
-        random.shuffle(image_set)
+        val_stimuli_path = os.path.join(BASE_DIR, "encoder-decoder-model", "data", "personalized", "val-stimuli")
+        image_set = os.listdir(val_stimuli_path)
 
-        for idx, image in enumerate(image_set):
-            if idx == 160:
-                break
-
-            shutil.copyfile(os.path.join(BASE_DIR, *[self.stimuli, image]),
+        for image in image_set:
+            shutil.copyfile(os.path.join(BASE_DIR, *[val_stimuli_path, image]),
                             os.path.join(BASE_DIR, *[self.test_set, image]))
 
 
