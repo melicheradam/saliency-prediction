@@ -77,7 +77,7 @@ def test(observer: str, load_name: str, discrepancy: bool, model_type: str, data
             _produce_discrepancy(load_name, dataset_class, observer)
     # test all observers
     else:
-        for observer in dataset_class.observers:
+        for observer in PSD.observers:
             _test_model(load_name, model_type, dataset_class, command_args, observer)
             if discrepancy:
                 _produce_discrepancy(load_name, dataset_class, observer)
@@ -110,7 +110,7 @@ def evaluate(observer: str, load_name: str, infogain_name: str, dataset: str):
         _run_in_docker("python2", "python src/evaluate_results.py", command_args)
     # evaluate all observers
     else:
-        for observer in dataset_class.observers:
+        for observer in PSD.observers:
             _load_name = load_name + "_" + observer
             infogain_path = Path(os.path.join(RESULTS_DIR, *[_load_name, "saliency"])) if infogain_name == "" \
                 else Path(os.path.join(RESULTS_DIR, *[infogain_name, "saliency"]))
@@ -122,8 +122,15 @@ def evaluate(observer: str, load_name: str, infogain_name: str, dataset: str):
             print("Evaluating model {}...".format(_load_name))
             _run_in_docker("python2", "python src/evaluate_results.py", _command_args)
 
-        command_args = " -res {} -name {}".format(RESULTS_DIR, load_name)
-        _run_in_docker("python3", "python src/show_training_results.py", command_args)
+
+
+
+@cli.command()
+@click.option("--load-name", help="Name of the model which will be evaluated", required=True)
+@click.argument("dataset", type=click.Choice(AVAILABLE_DATASETS))
+def show_results(dataset, load_name):
+    command_args = " -res {} -name {}".format(RESULTS_DIR, load_name)
+    _run_in_docker("python3", "python src/show_training_results.py", command_args)
 
 
 @cli.command()
@@ -185,36 +192,45 @@ def _test_model(load_name: str, model_type: str, dataset: DATASET, command_args:
     else:
         _load_model(load_name + "_" + observer)
 
-    print("Predicting maps by model {}...".format(_load_name))
+    print("Predicting maps by model {}...".format(load_name))
 
-    result_path = os.path.join(RESULTS_DIR, _load_name)
+    result_path = Path(os.path.join(RESULTS_DIR, _load_name))
 
     if observer != "":
-        result_path.join(observer)
+        result_path = result_path.joinpath(observer)
 
-    shutil.rmtree(result_path.join("saliency"), ignore_errors=True)
-    Path(result_path.join("saliency")).mkdir(parents=True)
+    result_path = result_path.joinpath("saliency")
+    shutil.rmtree(result_path, ignore_errors=True)
+
+    Path(result_path).mkdir(parents=True)
 
     _run_in_docker("python3-tensorflow", "python encoder-decoder-model/main.py", command_args)
 
     shutil.copytree(os.path.join(BASE_DIR, *["encoder-decoder-model", "results", "images"]),
-                    result_path.join("saliency"), dirs_exist_ok=True)
+                    result_path, dirs_exist_ok=True)
 
 
 def _produce_discrepancy(load_name, dataset: DATASET, observer=""):
     _load_name = load_name + "_" + dataset.name
 
     print("Producing discrepancy maps for model {}...".format(load_name))
-    result_path = os.path.join(RESULTS_DIR, _load_name)
+    result_path = Path(os.path.join(RESULTS_DIR, _load_name))
 
     if observer != "":
-        result_path.join(observer)
+        result_path = result_path.joinpath(observer)
 
-    shutil.rmtree(result_path.join("discrepancy"), ignore_errors=True)
-    Path(os.path.join(RESULTS_DIR, *[_load_name, "discrepancy"])).mkdir(parents=True)
+    fix_path = dataset.fixations
+    if dataset.observers is not None:
+        fix_path = fix_path.joinpath(observer)
+
+    result_path_saliency = result_path.joinpath("saliency")
+    result_path_discrepancy = result_path.joinpath("discrepancy")
+
+    shutil.rmtree(result_path_discrepancy, ignore_errors=True)
+    Path(result_path_discrepancy).mkdir(parents=True)
     command_args = " -gt {} -sal {} -orig {} -out {}".format(
-        dataset.fixations.as_posix(), Path(result_path.join("saliency")).as_posix(),
-        dataset.test_set.as_posix(), Path(result_path.join("discrepancy")).as_posix()
+        fix_path.as_posix(), Path(result_path_saliency).as_posix(),
+        dataset.test_set.as_posix(), Path(result_path_discrepancy).as_posix()
     )
     _run_in_docker("python3-tensorflow", "python src/differentiate_maps.py", command_args)
 
