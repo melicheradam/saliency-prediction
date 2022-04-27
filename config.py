@@ -52,7 +52,7 @@ class PSD(DATASET):
         self.ensureconfig()
 
     def create_test_set(self):
-        print("Creating test image set in path " + str(dataset_class.test_set))
+        print("Creating test image set in path " + str(self.test_set))
         shutil.rmtree(os.path.join(BASE_DIR, self.test_set), ignore_errors=True)
         self.test_set.mkdir(parents=True)
 
