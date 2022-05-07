@@ -1,3 +1,4 @@
+import ntpath
 import os
 from pathlib import Path
 
@@ -6,6 +7,7 @@ import click
 import shutil
 
 from config import DATASET, PSD, BASE_DIR, RESULTS_DIR, CAT2000
+from src.helpers import find_files_in_dir
 
 DOCKER_CLIENT = docker.from_env()
 DOCKER_VOLUME = BASE_DIR + ":/labs"
@@ -123,14 +125,55 @@ def evaluate(observer: str, load_name: str, infogain_name: str, dataset: str):
             _run_in_docker("python2", "python src/evaluate_results.py", _command_args)
 
 
-
-
 @cli.command()
 @click.option("--load-name", help="Name of the model which will be evaluated", required=True)
 @click.argument("dataset", type=click.Choice(AVAILABLE_DATASETS))
 def show_results(dataset, load_name):
-    command_args = " -res {} -name {}".format(RESULTS_DIR, load_name)
+    dataset = _get_dataset(dataset)
+    _load_name = load_name + "_" + dataset.name
+    command_args = " -res {} -name {}".format(RESULTS_DIR, _load_name)
     _run_in_docker("python3", "python src/show_training_results.py", command_args)
+
+
+@cli.command()
+@click.option("--load-name", help="Name of the model which will be evaluated", required=True)
+@click.argument("dataset", type=click.Choice(["CAT2000"]))
+def cross_validation(dataset, load_name):
+    dataset = _get_dataset(dataset)
+    _load_name = load_name + "_" + dataset.name
+    command_args = " -gt {} -sal {} -pg {} -bin {} -output {}"
+    """
+    _command_args = command_args.format(dataset.fixations.as_posix(),
+                                            Path(os.path.join(RESULTS_DIR, _load_name + "_merged")).as_posix(),
+                                            Path(os.path.join(RESULTS_DIR, _load_name + "_merged")).as_posix(),
+                                            dataset.binary_fixations.as_posix(),
+                                            Path(os.path.join(RESULTS_DIR, "cat2000.json")).as_posix()
+                                            )
+    _run_in_docker("python2", "python src/evaluate_results.py", _command_args)
+    """
+
+    images = list(set(find_files_in_dir(os.path.join(RESULTS_DIR, _load_name + "_merged"))))
+    images = sorted(images)
+    temp_dir = Path(os.path.join(RESULTS_DIR, "temp"))
+    # here we want to split dataset into 20 parts, because there are image 20 classes
+    for split in _chunk_dataset(images, 20):
+        class_name = ntpath.basename(split[0])[:ntpath.basename(split[0]).find("_")]
+        temp_dir.mkdir(exist_ok=True)
+        for item in split:
+            img_name = ntpath.basename(item)
+            shutil.copy(
+                item,
+                os.path.join(temp_dir, img_name)
+            )
+        _command_args = command_args.format(dataset.fixations.as_posix(),
+                                            Path(os.path.join(RESULTS_DIR, "temp")).as_posix(),
+                                            Path(os.path.join(RESULTS_DIR, "temp")).as_posix(),
+                                            dataset.binary_fixations.as_posix(),
+                                            Path(os.path.join(RESULTS_DIR, class_name + ".json")).as_posix()
+                                            )
+        _run_in_docker("python2", "python src/evaluate_results.py", _command_args)
+
+        shutil.rmtree(temp_dir)
 
 
 @cli.command()
@@ -154,11 +197,14 @@ def preprocess_dataset(dataset):
 
 
 @cli.command()
-@click.argument("model-name")
-def merge_maps(model_name):
-    pass
-    #command_args = " -res {} -name {}".format(RESULTS_DIR, model_name)
-    #_run_in_docker("python3", "python src/show_training_results.py", command_args)
+@click.option("--load-name", required=True)
+@click.argument("dataset", type=click.Choice(["CAT2000"]))
+def merge_maps(load_name, dataset):
+    dataset = _get_dataset(dataset)
+    _load_name = load_name + "_" + dataset.name
+
+    command_args = " -res {} -name {}".format(RESULTS_DIR, _load_name)
+    _run_in_docker("python3", "python src/cat2000/image_merger.py", command_args)
 
 
 def _load_model(model_name):
@@ -170,6 +216,17 @@ def _save_model(model_name):
     print("Saving model named " + model_name + "...")
     _run_in_docker("python3", "bash encoder-decoder-model/serialize_current_model.sh ", model_name)
 
+
+def _chunk_dataset(arr, n_chunks):
+    begin = 0
+    chunk_size = len(arr) / n_chunks
+
+    if not chunk_size.is_integer():
+        raise ValueError("Cannot divide array of length {} into {} chunks!".format(len(arr), n_chunks))
+    chunk_size = int(chunk_size)
+    for end in range(1, n_chunks + 1):
+        yield arr[begin: end * chunk_size]
+        begin = end * chunk_size
 
 def _train_model(load_name, save_name, command_args, observer=""):
     if load_name != "":

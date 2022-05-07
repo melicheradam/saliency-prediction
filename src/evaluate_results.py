@@ -18,7 +18,6 @@ NUM_OF_PARALLEL_PROCESSES = 6
 FORCED_IMAGE_RESIZE_DIMS = (640, 360)
 
 def resize_images(gt, gt_raw, s_map, generalized_map, pred_generalized_map, force=False):
-
     if not gt.shape == gt_raw.shape == s_map.shape == generalized_map.shape == pred_generalized_map:
         min_height = min(gt.shape[0], gt_raw.shape[0], s_map.shape[0], generalized_map.shape[0], pred_generalized_map.shape[0])
         min_width = min(gt.shape[1], gt_raw.shape[1], s_map.shape[1], generalized_map.shape[1], pred_generalized_map.shape[1])
@@ -40,6 +39,7 @@ def resize_images(gt, gt_raw, s_map, generalized_map, pred_generalized_map, forc
 
 # Count all saliency metrics for given groundtruth and predicted saliency map
 def calculate_metrics(pack):
+
     gt_path = pack[1][0]  # GT path
     gt_raw_path = pack[1][1]  # Binary GT path
     sal_path = pack[1][2]  # Saliency map path
@@ -55,7 +55,6 @@ def calculate_metrics(pack):
     pred_generalized_map = cv2.imread(pred_generalized_path, 0)  # Grayscale blurred image (0-255)
 
     gt, gt_raw, s_map, gt_generalized_map, pred_generalized_map = resize_images(gt, gt_raw, s_map, gt_generalized_map, pred_generalized_map)
-
     s_map_norm = sm.normalize_map(s_map)
     gt_generalized_path_norm = sm.normalize_map(gt_generalized_map)
     pred_generalized_path_norm = sm.normalize_map(pred_generalized_map)
