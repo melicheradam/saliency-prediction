@@ -87,42 +87,45 @@ def test(observer: str, load_name: str, discrepancy: bool, model_type: str, data
 
 @cli.command()
 @click.option("--load-name", help="Name of the model which will be evaluated", required=True)
+@click.option("--merged", help="Evaluate merged model maps", is_flag=True)
 @click.option("--observer", help="Observer name (if not provided all observers will be evaluated!)", default="")
-@click.option("--infogain-name", help="Full name of the model (including observer) which will be used in the Infogain metric", default="")
 @click.argument("dataset", type=click.Choice(AVAILABLE_DATASETS))
-def evaluate(observer: str, load_name: str, infogain_name: str, dataset: str):
+def evaluate(observer: str, load_name: str, dataset: str, merged: bool):
     print("Evaluating performance of the model...")
     dataset_class = _get_dataset(dataset)
-
-    _load_name = load_name
-    if observer != "":
-        _load_name = load_name + "_" + observer
-    infogain_path = Path(os.path.join(RESULTS_DIR, *[_load_name, "saliency"])) if infogain_name == "" \
-                else Path(os.path.join(RESULTS_DIR, *[infogain_name, "saliency"]))
-
     command_args = " -gt {} -sal {} -pg {} -bin {} -output {}"
 
-    # evaluate a specific observer or generalized
-    if observer != "":
-        command_args = command_args.format(
-            dataset_class.fixations.joinpath(observer).as_posix(), Path(os.path.join(RESULTS_DIR, *[_load_name, "saliency"])).as_posix(),
-            infogain_path.as_posix(), dataset_class.binary_fixations.joinpath(observer).as_posix(),
+    _load_name = load_name
+    _load_name += "_" + dataset_class.name
+
+    if merged and isinstance(dataset_class, CAT2000):
+        _load_name += "_" + "merged"
+        _command_args = command_args.format(
+            dataset_class.fixations.as_posix(),
+            Path(os.path.join(RESULTS_DIR, _load_name)).as_posix(),
+            Path(os.path.join(RESULTS_DIR, _load_name)).as_posix(),
+            dataset_class.binary_fixations.as_posix(),
             Path(os.path.join(RESULTS_DIR, *[_load_name, "evaluation.json"])).as_posix()
         )
-        _run_in_docker("python2", "python src/evaluate_results.py", command_args)
-    # evaluate all observers
-    else:
-        for observer in PSD.observers:
-            _load_name = load_name + "_" + observer
-            infogain_path = Path(os.path.join(RESULTS_DIR, *[_load_name, "saliency"])) if infogain_name == "" \
-                else Path(os.path.join(RESULTS_DIR, *[infogain_name, "saliency"]))
-            _command_args = command_args.format(
-                dataset_class.fixations.joinpath(observer).as_posix(), Path(os.path.join(RESULTS_DIR, *[_load_name, "saliency"])).as_posix(),
-                infogain_path.as_posix(), dataset_class.binary_fixations.joinpath(observer).as_posix(),
-                Path(os.path.join(RESULTS_DIR, *[_load_name, "evaluation.json"])).as_posix()
-            )
-            print("Evaluating model {}...".format(_load_name))
-            _run_in_docker("python2", "python src/evaluate_results.py", _command_args)
+        print("Evaluating model {}...".format(_load_name))
+        _run_in_docker("python2", "python src/evaluate_results.py", _command_args)
+        return
+    elif merged:
+        raise ValueError("Wrong combination of input parameters")
+
+    if observer != "":
+        dataset_class.observers = [observer]
+
+    for observer in dataset_class.observers:
+        _command_args = command_args.format(
+            dataset_class.fixations.joinpath(observer).as_posix(),
+            Path(os.path.join(RESULTS_DIR, *[_load_name, observer, "saliency"])).as_posix(),
+            Path(os.path.join(RESULTS_DIR, *[_load_name, observer, "saliency"])).as_posix(),
+            dataset_class.binary_fixations.joinpath(observer).as_posix(),
+            Path(os.path.join(RESULTS_DIR, *[_load_name, observer, "evaluation.json"])).as_posix()
+        )
+        print("Evaluating model {}...".format(_load_name))
+        _run_in_docker("python2", "python src/evaluate_results.py", _command_args)
 
 
 @cli.command()
@@ -138,19 +141,10 @@ def show_results(dataset, load_name):
 @cli.command()
 @click.option("--load-name", help="Name of the model which will be evaluated", required=True)
 @click.argument("dataset", type=click.Choice(["CAT2000"]))
-def cross_validation(dataset, load_name):
+def evaluate_categories(dataset, load_name):
     dataset = _get_dataset(dataset)
     _load_name = load_name + "_" + dataset.name
     command_args = " -gt {} -sal {} -pg {} -bin {} -output {}"
-    """
-    _command_args = command_args.format(dataset.fixations.as_posix(),
-                                            Path(os.path.join(RESULTS_DIR, _load_name + "_merged")).as_posix(),
-                                            Path(os.path.join(RESULTS_DIR, _load_name + "_merged")).as_posix(),
-                                            dataset.binary_fixations.as_posix(),
-                                            Path(os.path.join(RESULTS_DIR, "cat2000.json")).as_posix()
-                                            )
-    _run_in_docker("python2", "python src/evaluate_results.py", _command_args)
-    """
 
     images = list(set(find_files_in_dir(os.path.join(RESULTS_DIR, _load_name + "_merged"))))
     images = sorted(images)
@@ -227,6 +221,7 @@ def _chunk_dataset(arr, n_chunks):
     for end in range(1, n_chunks + 1):
         yield arr[begin: end * chunk_size]
         begin = end * chunk_size
+
 
 def _train_model(load_name, save_name, command_args, observer=""):
     if load_name != "":

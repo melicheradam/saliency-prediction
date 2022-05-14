@@ -2,7 +2,7 @@ import argparse
 import ntpath
 import os
 from pathlib import Path
-
+from scipy.ndimage import gaussian_filter
 import cv2
 import numpy as np
 from src.helpers import find_files_in_dir
@@ -45,6 +45,10 @@ def combine_all(res_path: Path, model_name: str):
         for image in images:
             # added images have proportional weight no number of subjects
             dest = cv2.addWeighted(dest, 1, image, 1 / len(SUB_NAMES), 0.0)
+
+        # unused augmentations
+        # dest = cv2.threshold(dest, 30, 255, cv2.THRESH_BINARY)
+        # dest = gaussian_filter(dest, signma=40)
 
         # Saving the output image
         cv2.imwrite(os.path.join(res_path, model_name + "_merged", img_name), dest)
